@@ -40,7 +40,7 @@ RUN set -e -x && \
       --prefix=/opt/openssl \
       --openssldir=/opt/openssl \
       no-weak-ssl-ciphers \
-      no-ssl3 \
+      enable-tls1_3 \
       no-shared \
       enable-ec_nistp_64_gcc_128 \
       -DOPENSSL_NO_HEARTBEATS \
@@ -48,6 +48,38 @@ RUN set -e -x && \
     make depend && \
     nproc | xargs -I % make -j% && \
     make install_sw && \
+    apt-get purge -y --auto-remove \
+      $build_deps && \
+    rm -rf \
+        /tmp/* \
+        /var/tmp/* \
+        /var/lib/apt/lists/*
+
+FROM debian:bookworm AS ngtcp
+LABEL maintainer="Gonzalo Suarez"
+
+ENV NAME=ngtcp2 \
+    VERSION=v1.13.0 \
+    SHA256_OPENSSL=b28c91532a8b65a1f983b4c28b7488174e4a01008e29ce8e69bd789f28bc2a89 \
+    SOURCE_NGTCP2=https://github.com/ngtcp2/ngtcp2
+
+WORKDIR /tmp/src
+
+COPY --from=openssl /opt/openssl /opt/openssl
+
+RUN set -e -x && \
+    build_deps="build-essential ca-certificates curl dirmngr gnupg libidn2-0-dev libssl-dev git pkg-config autoconf automake autotools-dev libtool" && \
+    DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
+      $build_deps && \
+    git clone --depth 1 -b ${VERSION} ${SOURCE_NGTCP2} ${NAME} && \
+    GNUPGHOME="$(mktemp -d)" && \
+    export GNUPGHOME && \
+    cd ${NAME} && \
+    git submodule update --init --recursive && \
+    autoreconf -i && \
+    ./configure PKG_CONFIG_PATH=/opt/openssl/lib64/pkgconfig LDFLAGS="-Wl,-rpath,/opt/openssl/lib64" --prefix=/opt/ngtcp2 && \
+    nproc | xargs -I % make -j% && \
+    make install && \
     apt-get purge -y --auto-remove \
       $build_deps && \
     rm -rf \
@@ -66,6 +98,7 @@ ENV NAME=unbound \
 WORKDIR /tmp/src
 
 COPY --from=openssl /opt/openssl /opt/openssl
+COPY --from=ngtcp /opt/ngtcp2 /opt/ngtcp2
 
 RUN build_deps="curl gcc libc-dev libevent-dev libexpat1-dev libnghttp2-dev make" && \
     set -x && \
@@ -91,6 +124,7 @@ RUN build_deps="curl gcc libc-dev libevent-dev libexpat1-dev libnghttp2-dev make
         --with-pthreads \
         --with-username=_unbound \
         --with-ssl=/opt/openssl \
+        --with-libngtcp2=/opt/ngtcp2 LDFLAGS="-Wl,-rpath -Wl,/opt/ngtcp2/lib64" \
         --with-libevent \
         --with-libnghttp2 \
         --enable-dnstap \
@@ -113,8 +147,8 @@ FROM debian:bookworm
 LABEL maintainer="Gonzalo Suarez"
 
 ENV NAME=unbound \
-    SUMMARY="${NAME} is a validating, recursive, and caching DNS resolver." \
-    DESCRIPTION="${NAME} is a validating, recursive, and caching DNS resolver."
+    SUMMARY="Unbound is a validating, recursive, and caching DNS resolver." \
+    DESCRIPTION="Unbound is a validating, recursive, and caching DNS resolver."
 
 WORKDIR /tmp/src
 
@@ -146,6 +180,8 @@ RUN chmod +x /unbound.sh
 WORKDIR /opt/unbound/
 
 ENV PATH="/opt/unbound/sbin:$PATH"
+
+ENV UNBOUND_VERSION=1.24.2
 
 LABEL org.opencontainers.image.version=${UNBOUND_VERSION} \
       org.opencontainers.image.title="gsuarezc/unbound" \
