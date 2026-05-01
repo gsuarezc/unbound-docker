@@ -3,8 +3,8 @@
 This is a fork of Matthew Vance's [unbound-docker image](https://github.com/MatthewVance/unbound-docker).
 
 ## Supported tags and respective `Dockerfile` links
-- [`1.25.0`, (*1.25.0/Dockerfile*)](https://github.com/gsuarezc/unbound-docker/tree/master/1.25.0)
-- [`1.24.2`, `latest` (*1.24.2/Dockerfile*)](https://github.com/gsuarezc/unbound-docker/tree/master/1.24.2)
+- [`1.25.0`, `latest` (*1.25.0/Dockerfile*)](https://github.com/gsuarezc/unbound-docker/tree/master/1.25.0)
+- [`1.24.2`, (*1.24.2/Dockerfile*)](https://github.com/gsuarezc/unbound-docker/tree/master/1.24.2)
 - [`1.22.0`, (*1.22.0/Dockerfile*)](https://github.com/gsuarezc/unbound-docker/tree/master/1.22.0)
 - [`1.21.1`, (*1.21.1/Dockerfile*)](https://github.com/gsuarezc/unbound-docker/tree/master/1.21.1)
 - [`1.21.0`, (*1.21.0/Dockerfile*)](https://github.com/gsuarezc/unbound-docker/tree/master/1.21.0)
